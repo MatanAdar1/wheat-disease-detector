@@ -9,7 +9,6 @@ import gdown
 # --- הגדרות פרויקט ---
 st.set_page_config(page_title="מערכת חכמה לחקלאות מדויקת", page_icon="🌾")
 
-# --- הגדרות הורדה מדרייב ---
 FILE_ID = '161ysydHCyvLOoVWkwWqJT5RpcMn_0rVu'
 MODEL_PATH = 'best_resnet18_wheat.pt'
 
@@ -21,15 +20,22 @@ def load_wheat_model():
             gdown.download(url, MODEL_PATH, quiet=False)
     
     try:
-        # 1. בניית הארכיטקטורה
-        model = models.resnet18(weights=None)
-        num_ftrs = model.fc.in_features
-        model.fc = nn.Linear(num_ftrs, 2)
-        
-        # 2. טעינת ה"חבילה" (Checkpoint)
+        # טעינת הצ'קפוינט
         checkpoint = torch.load(MODEL_PATH, map_location=torch.device('cpu'), weights_only=False)
         
-        # 3. שליפת המודל מתוך ה-Dictionary (לפי השגיאה שקיבלת Key: 'model_state_dict')
+        # חילוץ שמות המחלקות מהקובץ עצמו!
+        if isinstance(checkpoint, dict) and 'classes' in checkpoint:
+            st.session_state['labels'] = checkpoint['classes']
+        else:
+            # ברירת מחדל אם לא נמצאו שמות
+            st.session_state['labels'] = ["Brown Rust", "Healthy", "Leaf Rust", "Septoria", "Yellow Rust"]
+
+        # בניית המודל עם מספר המחלקות הנכון (5)
+        model = models.resnet18(weights=None)
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, len(st.session_state['labels']))
+        
+        # טעינת המשקולות
         if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
             model.load_state_dict(checkpoint['model_state_dict'])
         else:
@@ -57,10 +63,7 @@ transform = transforms.Compose([
 st.divider()
 input_method = st.radio("בחר שיטת הזנה:", ("צילום במצלמה 📸", "העלאת תמונה מהגלריה 📁"))
 
-if input_method == "צילום במצלמה 📸":
-    img_file = st.camera_input("צלם את העלה")
-else:
-    img_file = st.file_uploader("בחר קובץ תמונה", type=['jpg','png','jpeg'])
+img_file = st.camera_input("צלם") if input_method == "צילום במצלמה 📸" else st.file_uploader("בחר תמונה", type=['jpg','png','jpeg'])
 
 if img_file is not None and model is not None:
     image = Image.open(img_file).convert('RGB')
@@ -72,7 +75,10 @@ if img_file is not None and model is not None:
         probabilities = torch.nn.functional.softmax(outputs[0], dim=0)
         confidence, prediction = torch.max(probabilities, 0)
 
-    res = ["בריא (Healthy)", "חולה (Diseased)"]
-    color = "green" if prediction.item() == 0 else "red"
-    st.markdown(f"### אבחנה: :{color}[{res[prediction.item()]}]")
+    # שליפת השם הנכון מהלייבלים שגילינו בקובץ
+    labels = st.session_state.get('labels', ["Unknown"] * 5)
+    result_text = labels[prediction.item()]
+    
+    color = "green" if "Healthy" in result_text else "red"
+    st.markdown(f"### אבחנה: :{color}[{result_text}]")
     st.write(f"**רמת ביטחון:** {confidence.item()*100:.2f}%")
