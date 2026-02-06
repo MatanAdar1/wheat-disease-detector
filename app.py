@@ -21,24 +21,20 @@ def load_wheat_model():
         with st.spinner('מתחבר לדרייב וטוען את המודל המאומן... זה עשוי לקחת כדקה'):
             try:
                 session = requests.Session()
-                # ניסיון ראשון לקבלת הקובץ
                 response = session.get(MODEL_URL, params={'id': FILE_ID}, stream=True)
                 
-                # בדיקה אם יש אזהרת וירוסים/קובץ גדול של גוגל
                 token = None
                 for key, value in response.cookies.items():
                     if key.startswith('download_warning'):
                         token = value
                         break
                 
-                # אם נמצא טוקן אישור, נשלח בקשה חוזרת איתו
                 if token:
                     response = session.get(MODEL_URL, params={'id': FILE_ID, 'confirm': token}, stream=True)
                 
                 with open(MODEL_PATH, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
+                        if chunk: f.write(chunk)
             except Exception as e:
                 st.error(f"שגיאה בתקשורת עם הדרייב: {e}")
                 return None
@@ -47,16 +43,14 @@ def load_wheat_model():
     try:
         model = models.resnet18(weights=None)
         num_ftrs = model.fc.in_features
-        model.fc = nn.Linear(num_ftrs, 2) # 2 מחלקות: בריא/חולה
+        model.fc = nn.Linear(num_ftrs, 2)
         
-        # טעינה למעבד (CPU) עם weights_only=False למניעת שגיאת Pickle
         state_dict = torch.load(MODEL_PATH, map_location=torch.device('cpu'), weights_only=False)
         model.load_state_dict(state_dict)
         model.eval()
         return model
     except Exception as e:
         st.error(f"שגיאה בטעינת המודל: {e}")
-        # אם הקובץ פגום, נמחק אותו כדי שבניסיון הבא ירד מחדש
         if os.path.exists(MODEL_PATH):
             os.remove(MODEL_PATH)
         return None
@@ -69,7 +63,7 @@ st.title("זיהוי מחלות עלים בחיטה 🌾")
 st.markdown("### פרויקט מס' 3399 - אוניברסיטת תל אביב")
 st.write("מבצעים: נבו הלר ומתן אדר | מנחה: אסי ברק")
 
-# הגדרת עיבוד התמונה (Preprocessing)
+# הגדרת עיבוד התמונה
 transform = transforms.Compose([
     transforms.Resize(256),
     transforms.CenterCrop(224),
@@ -78,12 +72,22 @@ transform = transforms.Compose([
 ])
 
 st.divider()
-img_file = st.camera_input("צלם את עלה החיטה לבדיקה")
 
+# בחירת שיטת הזנה
+input_method = st.radio("בחר כיצד להזין תמונה לבדיקה:", 
+                        ("צילום במצלמה 📸", "העלאת תמונה מהגלריה 📁"))
+
+if input_method == "צילום במצלמה 📸":
+    img_file = st.camera_input("צלם את העלה")
+else:
+    img_file = st.file_uploader("בחר קובץ תמונה (JPG, PNG, JPEG)", type=['jpg', 'png', 'jpeg'])
+
+# --- ביצוע הסיווג ---
 if img_file is not None:
     if model is not None:
-        # עיבוד והצגת התמונה
         image = Image.open(img_file).convert('RGB')
+        st.image(image, caption="התמונה שנקלטה", use_container_width=True)
+        
         img_tensor = transform(image).unsqueeze(0)
         
         with torch.no_grad():
@@ -91,7 +95,6 @@ if img_file is not None:
             probabilities = torch.nn.functional.softmax(outputs[0], dim=0)
             confidence, prediction = torch.max(probabilities, 0)
 
-        # הצגת תוצאות
         st.divider()
         labels = ["בריא (Healthy)", "חולה (Diseased)"]
         color = "green" if prediction.item() == 0 else "red"
@@ -104,4 +107,4 @@ if img_file is not None:
         else:
             st.success("תיאור: העלה נראה חיוני ותקין.")
     else:
-        st.error("המודל לא נטען כראוי. אנא נסה לרענן את הדף (Reboot).")
+        st.error("המודל לא נטען כראוי. נסה Reboot לאפליקציה.")
