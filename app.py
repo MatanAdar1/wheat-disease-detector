@@ -7,78 +7,91 @@ import os
 import gdown
 
 # --- הגדרות פרויקט ---
-st.set_page_config(page_title="מערכת חכמה לחקלאות מדויקת", page_icon="🌾")
+st.set_page_config(page_title="זיהוי מחלות חיטה 🌾", page_icon="🌾")
 
 FILE_ID = '161ysydHCyvLOoVWkwWqJT5RpcMn_0rVu'
 MODEL_PATH = 'best_resnet18_wheat.pt'
 
+# מילון תרגום והסברים
+DISEASE_INFO = {
+    "BlackPoint": {
+        "heb": "חוד שחור (Black Point)",
+        "desc": "שינוי צבע בקצה הגרעין או העלה, נגרם לרוב מעודף לחות.",
+        "tip": "מומלץ לבחון את רמת הלחות בחלקה ולעקוב אחר התפשטות."
+    },
+    "FusariumFootRot": {
+        "heb": "ריקבון בסיס הקנה (Fusarium)",
+        "desc": "פטרייה התוקפת את בסיס הצמח וגורמת להצהבה וקמילה.",
+        "tip": "חשוב למנוע השקיית יתר ולשקול טיפול פטרייתי ייעודי."
+    },
+    "HealthyLeaf": {
+        "heb": "עלה בריא (Healthy)",
+        "desc": "העלה נראה חיוני, ירוק וללא סימני מחלה פטרייתית.",
+        "tip": "מצב מצוין! המשך בניטור קבוע של חלקת הניסוי."
+    },
+    "LeafBlight": {
+        "heb": "קמלת עלים (Leaf Blight)",
+        "desc": "כתמים מוארכים ויבשים על העלה המפחיתים את יכולת הפוטוסינתזה.",
+        "tip": "יש לבדוק אם קיימת רגישות זנית ולמנוע הרטבת עלווה ישירה."
+    },
+    "WheatBlast": {
+        "heb": "פיריקורליית החיטה (Wheat Blast)",
+        "desc": "אחת המחלות הקשות ביותר, גורמת להלבנה מהירה של חלקים בצמח.",
+        "tip": "זהירות! מחלה מידבקת מאוד. יש לבודד את הדגימה ולדווח למדריך."
+    }
+}
+
 @st.cache_resource
 def load_wheat_model():
     if not os.path.exists(MODEL_PATH):
-        with st.spinner('מוריד את המודל מהדרייב...'):
-            url = f'https://drive.google.com/uc?id={FILE_ID}'
-            gdown.download(url, MODEL_PATH, quiet=False)
+        with st.spinner('טוען מודל...'):
+            gdown.download(f'https://drive.google.com/uc?id={FILE_ID}', MODEL_PATH, quiet=False)
     
     try:
-        # טעינת הצ'קפוינט
         checkpoint = torch.load(MODEL_PATH, map_location=torch.device('cpu'), weights_only=False)
+        # זיהוי שמות המחלקות מהקובץ
+        labels = checkpoint.get('classes', list(DISEASE_INFO.keys()))
         
-        # חילוץ שמות המחלקות מהקובץ עצמו!
-        if isinstance(checkpoint, dict) and 'classes' in checkpoint:
-            st.session_state['labels'] = checkpoint['classes']
-        else:
-            # ברירת מחדל אם לא נמצאו שמות
-            st.session_state['labels'] = ["Brown Rust", "Healthy", "Leaf Rust", "Septoria", "Yellow Rust"]
-
-        # בניית המודל עם מספר המחלקות הנכון (5)
         model = models.resnet18(weights=None)
-        num_ftrs = model.fc.in_features
-        model.fc = nn.Linear(num_ftrs, len(st.session_state['labels']))
-        
-        # טעינת המשקולות
-        if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
-            model.load_state_dict(checkpoint['model_state_dict'])
-        else:
-            model.load_state_dict(checkpoint)
-            
+        model.fc = nn.Linear(model.fc.in_features, len(labels))
+        model.load_state_dict(checkpoint.get('model_state_dict', checkpoint))
         model.eval()
-        return model
+        return model, labels
     except Exception as e:
-        st.error(f"שגיאה בטעינת המודל: {e}")
-        return None
+        st.error(f"שגיאה: {e}")
+        return None, None
 
-model = load_wheat_model()
+model, labels = load_wheat_model()
 
 # --- ממשק משתמש ---
-st.title("זיהוי מחלות עלים בחיטה 🌾")
+st.title("מערכת חכמה לזיהוי מחלות חיטה 🌾")
 st.write("מבצעים: נבו הלר ומתן אדר | מנחה: אסי ברק")
 
 transform = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    transforms.Resize(256), transforms.CenterCrop(224),
+    transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-st.divider()
-input_method = st.radio("בחר שיטת הזנה:", ("צילום במצלמה 📸", "העלאת תמונה מהגלריה 📁"))
+input_method = st.radio("בחר שיטת הזנה:", ("צילום במצלמה 📸", "העלאת תמונה 📁"))
+img_file = st.camera_input("צלם") if "מצלמה" in input_method else st.file_uploader("בחר תמונה", type=['jpg','jpeg','png'])
 
-img_file = st.camera_input("צלם") if input_method == "צילום במצלמה 📸" else st.file_uploader("בחר תמונה", type=['jpg','png','jpeg'])
-
-if img_file is not None and model is not None:
+if img_file and model:
     image = Image.open(img_file).convert('RGB')
-    st.image(image, use_container_width=True)
-    img_tensor = transform(image).unsqueeze(0)
+    st.image(image, caption="התמונה שנבחנה", use_container_width=True)
     
     with torch.no_grad():
-        outputs = model(img_tensor)
-        probabilities = torch.nn.functional.softmax(outputs[0], dim=0)
-        confidence, prediction = torch.max(probabilities, 0)
+        output = model(transform(image).unsqueeze(0))
+        prob = torch.nn.functional.softmax(output[0], dim=0)
+        conf, pred = torch.max(prob, 0)
 
-    # שליפת השם הנכון מהלייבלים שגילינו בקובץ
-    labels = st.session_state.get('labels', ["Unknown"] * 5)
-    result_text = labels[prediction.item()]
+    class_name = labels[pred.item()]
+    info = DISEASE_INFO.get(class_name, {"heb": class_name, "desc": "", "tip": ""})
+
+    st.divider()
+    color = "green" if "Healthy" in class_name else "red"
+    st.markdown(f"## אבחנה: :{color}[{info['heb']}]")
+    st.write(f"**רמת ביטחון:** {conf.item()*100:.1f}%")
     
-    color = "green" if "Healthy" in result_text else "red"
-    st.markdown(f"### אבחנה: :{color}[{result_text}]")
-    st.write(f"**רמת ביטחון:** {confidence.item()*100:.2f}%")
+    with st.expander("מידע נוסף והמלצות לטיפול"):
+        st.write(f"**תיאור:** {info['desc']}")
+        st.info(f"**מה לעשות?** {info['tip']}")
