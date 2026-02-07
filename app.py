@@ -6,8 +6,29 @@ from PIL import Image
 import os
 import gdown
 
-# --- הגדרות פרויקט ---
+# --- הגדרות פרויקט ועיצוב RTL ---
 st.set_page_config(page_title="זיהוי מחלות חיטה 🌾", page_icon="🌾")
+
+# הזרקת CSS ליישור לימין
+st.markdown("""
+    <style>
+    .main {
+        direction: rtl;
+        text-align: right;
+    }
+    div[role="radiogroup"] {
+        direction: rtl;
+        text-align: right;
+    }
+    div.stMarkdown {
+        text-align: right;
+    }
+    .stAlert {
+        direction: rtl;
+        text-align: right;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 FILE_ID = '161ysydHCyvLOoVWkwWqJT5RpcMn_0rVu'
 MODEL_PATH = 'best_resnet18_wheat.pt'
@@ -49,7 +70,6 @@ def load_wheat_model():
     
     try:
         checkpoint = torch.load(MODEL_PATH, map_location=torch.device('cpu'), weights_only=False)
-        # זיהוי שמות המחלקות מהקובץ
         labels = checkpoint.get('classes', list(DISEASE_INFO.keys()))
         
         model = models.resnet18(weights=None)
@@ -72,8 +92,15 @@ transform = transforms.Compose([
     transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-input_method = st.radio("בחר שיטת הזנה:", ("צילום במצלמה 📸", "העלאת תמונה 📁"))
-img_file = st.camera_input("צלם") if "מצלמה" in input_method else st.file_uploader("בחר תמונה", type=['jpg','jpeg','png'])
+st.divider()
+
+input_method = st.radio("בחר כיצד להזין תמונה לבדיקה:", 
+                        ("צילום במצלמה 📸", "העלאת תמונה מהגלריה 📁"))
+
+if "מצלמה" in input_method:
+    img_file = st.camera_input("צלם את העלה")
+else:
+    img_file = st.file_uploader("בחר קובץ תמונה (JPG, PNG, JPEG)", type=['jpg', 'png', 'jpeg'])
 
 if img_file and model:
     image = Image.open(img_file).convert('RGB')
@@ -90,8 +117,11 @@ if img_file and model:
     st.divider()
     color = "green" if "Healthy" in class_name else "red"
     st.markdown(f"## אבחנה: :{color}[{info['heb']}]")
+    
+    # הצגת רמת ביטחון עם פס התקדמות ויזואלי
     st.write(f"**רמת ביטחון:** {conf.item()*100:.1f}%")
+    st.progress(conf.item())
     
     with st.expander("מידע נוסף והמלצות לטיפול"):
-        st.write(f"**תיאור:** {info['desc']}")
-        st.info(f"**מה לעשות?** {info['tip']}")
+        st.write(f"**תיאור המחלה:** {info['desc']}")
+        st.info(f"**המלצה לניסוי:** {info['tip']}")
