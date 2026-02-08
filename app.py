@@ -4,84 +4,124 @@ import torch.nn as nn
 from torchvision import models, transforms
 from PIL import Image
 import os
+import gdown
 
-# --- Configuration & Page Setup ---
-st.set_page_config(page_title="Wheat Disease Detector", page_icon="🌾", layout="centered")
+# --- הגדרות פרויקט ועיצוב RTL ---
+st.set_page_config(page_title="זיהוי מחלות חיטה 🌾", page_icon="🌾")
 
-# Define the classes (must match your training labels)
-CLASS_NAMES = ['Black Point', 'Fusarium', 'Healthy', 'Leaf Blight', 'Wheat Blast']
+# הזרקת CSS ליישור לימין
+st.markdown("""
+    <style>
+    .main {
+        direction: rtl;
+        text-align: right;
+    }
+    div[role="radiogroup"] {
+        direction: rtl;
+        text-align: right;
+    }
+    div.stMarkdown {
+        text-align: right;
+    }
+    .stAlert {
+        direction: rtl;
+        text-align: right;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- Model Loading ---
+FILE_ID = '161ysydHCyvLOoVWkwWqJT5RpcMn_0rVu'
+MODEL_PATH = 'best_resnet18_wheat.pt'
+
+# מילון תרגום והסברים
+DISEASE_INFO = {
+    "BlackPoint": {
+        "heb": "חוד שחור (Black Point)",
+        "desc": "שינוי צבע בקצה הגרעין או העלה, נגרם לרוב מעודף לחות.",
+        "tip": "מומלץ לבחון את רמת הלחות בחלקה ולעקוב אחר התפשטות."
+    },
+    "FusariumFootRot": {
+        "heb": "ריקבון בסיס הקנה (Fusarium)",
+        "desc": "פטרייה התוקפת את בסיס הצמח וגורמת להצהבה וקמילה.",
+        "tip": "חשוב למנוע השקיית יתר ולשקול טיפול פטרייתי ייעודי."
+    },
+    "HealthyLeaf": {
+        "heb": "עלה בריא (Healthy)",
+        "desc": "העלה נראה חיוני, ירוק וללא סימני מחלה פטרייתית.",
+        "tip": "מצב מצוין! המשך בניטור קבוע של חלקת הניסוי."
+    },
+    "LeafBlight": {
+        "heb": "קמלת עלים (Leaf Blight)",
+        "desc": "כתמים מוארכים ויבשים על העלה המפחיתים את יכולת הפוטוסינתזה.",
+        "tip": "יש לבדוק אם קיימת רגישות זנית ולמנוע הרטבת עלווה ישירה."
+    },
+    "WheatBlast": {
+        "heb": "פיריקורליית החיטה (Wheat Blast)",
+        "desc": "אחת המחלות הקשות ביותר, גורמת להלבנה מהירה של חלקים בצמח.",
+        "tip": "זהירות! מחלה מידבקת מאוד. יש לבודד את הדגימה ולדווח למדריך."
+    }
+}
+
 @st.cache_resource
-def load_model():
-    # Initialize ResNet18 architecture
-    model = models.resnet18(weights=None)
-    num_ftrs = model.fc.in_features
-    # Adjust final layer to the number of classes (5)
-    model.fc = nn.Linear(num_ftrs, len(CLASS_NAMES))
+def load_wheat_model():
+    if not os.path.exists(MODEL_PATH):
+        with st.spinner('טוען מודל...'):
+            gdown.download(f'https://drive.google.com/uc?id={FILE_ID}', MODEL_PATH, quiet=False)
     
-    # Load your trained weights (ensure the file is in the same directory)
-    model_path = "wheat_model.pth" 
-    if os.path.exists(model_path):
-        model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
-    
-    model.eval()
-    return model
-
-model = load_model()
-
-# --- Image Preprocessing ---
-def preprocess_image(image):
-    transform = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-    return transform(image).unsqueeze(0)
-
-# --- UI Layout (English Only) ---
-st.title("🌾 Wheat Guard AI")
-st.subheader("Autonomous Disease Classification System")
-st.write("Upload a leaf or grain image to receive an instant diagnostic report.")
-
-uploaded_file = st.file_uploader("Choose an image sample...", type=["jpg", "jpeg", "png"])
-
-if uploaded_file is not None:
-    # Display the uploaded image
-    image = Image.open(uploaded_file).convert('RGB')
-    st.image(image, caption='Uploaded Sample', use_container_width=True)
-    
-    st.write("---")
-    with st.spinner('Analyzing sample using ResNet18...'):
-        # Inference
-        input_tensor = preprocess_image(image)
-        with torch.no_grad():
-            outputs = model(input_tensor)
-            probabilities = torch.nn.functional.softmax(outputs[0], dim=0)
-            confidence, index = torch.max(probabilities, 0)
+    try:
+        checkpoint = torch.load(MODEL_PATH, map_location=torch.device('cpu'), weights_only=False)
+        labels = checkpoint.get('classes', list(DISEASE_INFO.keys()))
         
-        # Result Display
-        label = CLASS_NAMES[index]
-        conf_score = confidence.item() * 100
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Diagnosis", label)
-        with col2:
-            st.metric("Confidence Score", f"{conf_score:.1f}%")
+        model = models.resnet18(weights=None)
+        model.fc = nn.Linear(model.fc.in_features, len(labels))
+        model.load_state_dict(checkpoint.get('model_state_dict', checkpoint))
+        model.eval()
+        return model, labels
+    except Exception as e:
+        st.error(f"שגיאה: {e}")
+        return None, None
 
-        # Visual feedback based on result
-        if label == 'Healthy':
-            st.success(f"The sample appears to be **Healthy**.")
-        else:
-            st.error(f"Potential **{label}** detected.")
-            st.warning("**Recommendation:** Check local field humidity and consult with an agronomist if symptoms spread.")
+model, labels = load_wheat_model()
 
-# --- Sidebar Info ---
-st.sidebar.title("System Info")
-st.sidebar.info("""
-**Project ID:** 3399  
-**Model:** ResNet18 (Deep Learning)  
-**Hardware:** ESP32 Integration Ready  
-""")
+# --- ממשק משתמש ---
+st.title("מערכת חכמה לזיהוי מחלות חיטה 🌾")
+st.write("מבצעים: נבו הלר ומתן אדר | מנחה: אסי ברק")
+
+transform = transforms.Compose([
+    transforms.Resize(256), transforms.CenterCrop(224),
+    transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
+
+st.divider()
+
+input_method = st.radio("בחר כיצד להזין תמונה לבדיקה:", 
+                        ("צילום במצלמה 📸", "העלאת תמונה מהגלריה 📁"))
+
+if "מצלמה" in input_method:
+    img_file = st.camera_input("צלם את העלה")
+else:
+    img_file = st.file_uploader("בחר קובץ תמונה (JPG, PNG, JPEG)", type=['jpg', 'png', 'jpeg'])
+
+if img_file and model:
+    image = Image.open(img_file).convert('RGB')
+    st.image(image, caption="התמונה שנבחנה", use_container_width=True)
+    
+    with torch.no_grad():
+        output = model(transform(image).unsqueeze(0))
+        prob = torch.nn.functional.softmax(output[0], dim=0)
+        conf, pred = torch.max(prob, 0)
+
+    class_name = labels[pred.item()]
+    info = DISEASE_INFO.get(class_name, {"heb": class_name, "desc": "", "tip": ""})
+
+    st.divider()
+    color = "green" if "Healthy" in class_name else "red"
+    st.markdown(f"## אבחנה: :{color}[{info['heb']}]")
+    
+    # הצגת רמת ביטחון עם פס התקדמות ויזואלי
+    st.write(f"**רמת ביטחון:** {conf.item()*100:.1f}%")
+    st.progress(conf.item())
+    
+    with st.expander("מידע נוסף והמלצות לטיפול"):
+        st.write(f"**תיאור המחלה:** {info['desc']}")
+        st.info(f"**המלצה לניסוי:** {info['tip']}")
