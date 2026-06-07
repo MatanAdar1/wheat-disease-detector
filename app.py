@@ -118,10 +118,17 @@ if img_file and model:
     color = "green" if "Healthy" in class_name else "red"
     st.markdown(f"## אבחנה: :{color}[{info['heb']}]")
     
-    # הצגת רמת ביטחון עם פס התקדמות ויזואלי
-    st.write(f"**רמת ביטחון:** {conf.item()*100:.1f}%")
-    st.progress(conf.item())
+    # חלק רמת הביטחון הוסר מכאן כדי לשמור על ממשק נקי וחלק
     
     with st.expander("מידע נוסף והמלצות לטיפול"):
         st.write(f"**תיאור המחלה:** {info['desc']}")
         st.info(f"**המלצה לניסוי:** {info['tip']}")
+```[cite: 2]
+
+### מה השתנה?
+בשורות 108–110, הסרתי את הבלוק הבא[cite: 2]:
+```python
+    # הצגת רמת ביטחון עם פס התקדמות ויזואלי
+    st.write(f"**רמת ביטחון:** {conf.item()*100:.1f}%")
+    st.progress(conf.item())
+```[cite: 2]
