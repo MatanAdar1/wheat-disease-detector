@@ -6,8 +6,9 @@ from PIL import Image
 import os
 import gdown
 import pandas as pd
+from datetime import datetime
 
-st.set_page_config(page_title="ניהול וניטור ניסוי חיטה 🌾", page_icon="🌾", layout="wide")
+st.set_page_config(page_title="ניהול ומאגר ניסוי חיטה 🌾", page_icon="🌾", layout="wide")
 
 st.markdown("""
     <style>
@@ -36,6 +37,9 @@ st.markdown("""
 FILE_ID = '161ysydHCyvLOoVWkwWqJT5RpcMn_0rVu'
 MODEL_PATH = 'best_resnet18_wheat.pt'
 CONFIDENCE_THRESHOLD = 0.25
+
+if "plant_history" not in st.session_state:
+    st.session_state.plant_history = {}
 
 DISEASE_INFO = {
     "BlackPoint": {
@@ -67,14 +71,14 @@ DISEASE_INFO = {
 
 @st.cache_data
 def load_experiment_data():
-    plants_df = pd.read_csv("plants_experiment_73.csv")
-    temp_df = pd.read_csv("Temperature_0_5TM__GraphViewer.csv")
-    return plants_df, temp_df
+    if not os.path.exists("plants_experiment_73.csv"):
+        return None
+    return pd.read_csv("plants_experiment_73.csv")
 
 @st.cache_resource
 def load_wheat_model():
     if not os.path.exists(MODEL_PATH):
-        with st.spinner('טוען מודל...'):
+        with st.spinner('טוען מודל זיהוי...'):
             gdown.download(f'https://drive.google.com/uc?id={FILE_ID}', MODEL_PATH, quiet=False)
     try:
         checkpoint = torch.load(MODEL_PATH, map_location=torch.device('cpu'), weights_only=False)
@@ -88,86 +92,114 @@ def load_wheat_model():
         st.error(f"שגיאה בטעינת המודל: {e}")
         return None, None
 
-plants_df, temp_df = load_experiment_data()
+plants_df = load_experiment_data()
+
+if plants_df is None:
+    st.title("מערכת חכמה לניהול ומאגר ניסוי חיטה 🌾")
+    st.error("❌ קובץ הנתונים plants_experiment_73.csv חסר בשרת!")
+    st.info("אנא ודאו שהעלתם את הקובץ לתיקייה הראשית ב-GitHub לצד קובץ ה-app.py.")
+    st.stop()
+
 model, labels = load_wheat_model()
 
 st.title("מערכת חכמה לניהול, ניטור וזיהוי מחלות חיטה 🌾")
 st.write("מבצעים: נבו הלר ומתן אדר | מנחה: אסי ברק")
 st.divider()
 
-st.sidebar.header("סינון ובחירת צמח")
-selected_plant = st.sidebar.selectbox("בחר מזהה צמח מתוך הניסוי:", plants_df['name'].unique())
+st.sidebar.header("🕹️ תפריט ניווט ובחירה")
+plants_df['select_label'] = plants_df.apply(lambda r: f"{r['name']} (ID: {r['id']})", axis=1)
+selected_label = st.sidebar.selectbox("בחר צמח לפי שם ומזהה:", plants_df['select_label'].unique())
 
-plant_row = plants_df[plants_df['name'] == selected_plant].iloc[0]
+plant_row = plants_df[plants_df['select_label'] == selected_label].iloc[0]
+plant_id = int(plant_row['id'])
+plant_name = str(plant_row['name'])
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("סוג טיפול", str(plant_row['#Treatment']))
-col2.metric("קו גנטי (#line)", str(plant_row['#line']))
-col3.metric("מדד עקה (Stress Degree)", f"{plant_row['stressDegree']:.3f}")
-col4.metric("קצב התאוששות", f"{plant_row['resilienceRate']:.3f}")
+col1.metric("מזהה ייחודי (ID)", str(plant_id))
+col2.metric("שם הצמח", plant_name))
+col3.metric("סוג טיפול", str(plant_row['#Treatment']))
+col4.metric("מדד עקה", f"{plant_row['stressDegree']:.3f}")
 
-st.subheader("📋 הערכה כללית של מצב הצמח")
-treatment = plant_row['#Treatment']
-stress = plant_row['stressDegree']
+st.subheader("📊 נתוני הצמח המלאים מתוך הניסוי")
+clean_row = plant_row.drop('select_label')
+display_df = pd.DataFrame({
+    "פרמטר / מדד": clean_row.index,
+    "ערך מוקלט": clean_row.values
+}).astype(str)
 
-if treatment == 'Drought' and stress > 0.15:
-    st.error(f"**סטטוס: עקת יובש משמעותית.** הצמח משויך לקבוצת הטיפול ביתר יובש ומציג מדד לחץ גבוה ({stress:.3f}). מומלץ לבצע בדיקה חזותית קרובה כדי לשלול התפתחות מחלות משניות המנצלות את חולשת הצמח.")
-elif treatment == 'Drought':
-    st.warning(f"**סטטוס: עקת יובש מתונה.** הצמח נמצא תחת מגבלת מים אך מראה יציבות ומדדי הסתגלות תקינים בשלב זה.")
-else:
-    st.success("**סטטוס: תקין ויציב.** הצמח משויך לקבוצת הביקורת (Control), תנאי הלחות אופטימליים והתפתחות המסה שלו מתנהלת כמצופה.")
+st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 st.divider()
-st.subheader("📈 נתוני טמפרטורה לאורך זמן (°C)")
+st.subheader("📸 תיעוד חזותי והוספה למאגר הצמח")
 
-temp_col_name = f"{selected_plant} - Temperature/0/5TM (°c)"
-if temp_col_name in temp_df.columns:
-    plot_data = temp_df[['Timestamp', temp_col_name]].dropna()
-    if not plot_data.empty:
-        plot_data['Timestamp'] = pd.to_datetime(plot_data['Timestamp'])
-        plot_data = plot_data.set_index('Timestamp')
-        plot_data = plot_data.rename(columns={temp_col_name: "טמפרטורה"})
-        st.line_chart(plot_data)
-    else:
-        st.info("אין נקודות נתונים זמינות להצגה בגרף עבור צמח זה.")
-else:
-    st.info("לא נמצאה עמודת טמפרטורה תואמת עבור הצמח הנבחר בקובץ הרצף העתידי.")
+transform = transforms.Compose([
+    transforms.Resize(256), transforms.CenterCrop(224),
+    transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
 
-st.divider()
-st.subheader("📸 בדיקה חזותית וזיהוי מחלות בזמן אמת")
+c1, c2 = st.columns(2)
 
-with st.expander("לחץ כאן כדי לפתוח את ממשק הצילום והאבחון של העלה"):
-    transform = transforms.Compose([
-        transforms.Resize(256), transforms.CenterCrop(224),
-        transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-    
-    input_method = st.radio("בחר כיצד להזין תמונה לבדיקה:", 
-                            ("צילום במצלמה 📸", "העלאת תמונה מהגלריה 📁"), key="visual_inspect")
-
+with c1:
+    input_method = st.radio("בחר דרך להזנת תמונה למאגר צמח זה:", 
+                            ("צילום ישיר במצלמה 📸", "העלאת קובץ מהגלריה 📁"), key="input_meth")
     if "מצלמה" in input_method:
-        img_file = st.camera_input("צלם את העלה", key="cam_key")
+        img_file = st.camera_input("צלם את העלה", key="capture_photo")
     else:
-        img_file = st.file_uploader("בחר קובץ תמונה (JPG, PNG, JPEG)", type=['jpg', 'png', 'jpeg'], key="file_key")
+        img_file = st.file_uploader("בחר קובץ תמונה", type=['jpg', 'png', 'jpeg'], key="upload_photo")
 
-    if img_file and model:
-        image = Image.open(img_file).convert('RGB')
-        st.image(image, caption=f"תמונת עלה שנבחנה עבור צמח {selected_plant}", use_container_width=True)
-        
+with c2:
+    user_notes = st.text_area("✍️ פירוט על מצב הצמח באותו זמן:", 
+                              placeholder="הקלד כאן תיאור מילולי, תצפיות מיוחדות או הערות מהשטח...", height=150)
+
+if img_file:
+    image = Image.open(img_file).convert('RGB')
+    
+    auto_diagnosis = "לא הופעל אבחון"
+    if model:
         with torch.no_grad():
             output = model(transform(image).unsqueeze(0))
             prob = torch.nn.functional.softmax(output[0], dim=0)
             conf, pred = torch.max(prob, 0)
-
+        
         if conf.item() < CONFIDENCE_THRESHOLD:
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.warning("לא זוהה עלה בתמונה, נסה לצלם שוב")
+            auto_diagnosis = "לא זוהה עלה רלוונטי בתמונה"
         else:
             class_name = labels[pred.item()]
-            info = DISEASE_INFO.get(class_name, {"heb": class_name, "desc": "", "tip": ""})
+            auto_diagnosis = DISEASE_INFO.get(class_name, {"heb": class_name})["heb"]
+    
+    st.write("---")
+    st.markdown(f"**אבחון אוטומטי זמני:** {auto_diagnosis}")
+    
+    if st.button(f"💾 שמור תיעוד זה למאגר של צמח {plant_name}"):
+        current_time = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        
+        if plant_id not in st.session_state.plant_history:
+            st.session_state.plant_history[plant_id] = []
+            
+        st.session_state.plant_history[plant_id].append({
+            "timestamp": current_time,
+            "image": image,
+            "notes": user_notes if user_notes else "לא הוכנס פירוט חופשי",
+            "diagnosis": auto_diagnosis
+        })
+        st.success(f"התיעוד נשמר בהצלחה במאגר של צמח {plant_name}!")
+        st.rerun()
 
-            st.divider()
-            color = "green" if "Healthy" in class_name else "red"
-            st.markdown(f"### אבחנה עבור {selected_plant}: :{color}[{info['heb']}]")
-            st.write(f"**תיאור המחלה:** {info['desc']}")
-            st.info(f"**המלצה לטיפול:** {info['tip']}")
+st.divider()
+st.subheader(f"🗄️ מאגר תמונות והיסטוריית תיעודים - צמח {plant_name}")
+
+if plant_id in st.session_state.plant_history and len(st.session_state.plant_history[plant_id]) > 0:
+    history_list = st.session_state.plant_history[plant_id]
+    
+    for idx, record in enumerate(reversed(history_list)):
+        with st.container():
+            hc1, hc2 = st.columns([1, 3])
+            with hc1:
+                st.image(record["image"], use_container_width=True)
+            with hc2:
+                st.markdown(f"### 📅 תאריך ושעה: `{record['timestamp']}`")
+                st.markdown(f"**🔬 אבחון מערכת:** {record['diagnosis']}")
+                st.markdown(f"**📝 פירוט מצב הצמח:** {record['notes']}")
+            st.write("---")
+else:
+    st.info("לא קיימים תיעודים או צילומים במאגר עבור צמח זה עדיין. השתמשו בממשק מעל כדי להוסיף את הצילום הראשון.")
