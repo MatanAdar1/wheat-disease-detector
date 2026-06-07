@@ -108,13 +108,17 @@ if img_file and model:
         prob = torch.nn.functional.softmax(output[0], dim=0)
         conf, pred = torch.max(prob, 0)
 
-    class_name = labels[pred.item()]
-    info = DISEASE_INFO.get(class_name, {"heb": class_name, "desc": "", "tip": ""})
+    if conf.item() < 0.40:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.warning("לא זוהה עלה בתמונה, נסה לצלם שוב")
+    else:
+        class_name = labels[pred.item()]
+        info = DISEASE_INFO.get(class_name, {"heb": class_name, "desc": "", "tip": ""})
 
-    st.divider()
-    color = "green" if "Healthy" in class_name else "red"
-    st.markdown(f"## אבחנה: :{color}[{info['heb']}]")
-    
-    with st.expander("מידע נוסף והמלצות לטיפול"):
-        st.write(f"**תיאור המחלה:** {info['desc']}")
-        st.info(f"**המלצה לטיפול:** {info['tip']}")
+        st.divider()
+        color = "green" if "Healthy" in class_name else "red"
+        st.markdown(f"## אבחנה: :{color}[{info['heb']}]")
+        
+        with st.expander("מידע נוסף והמלצות לטיפול"):
+            st.write(f"**תיאור המחלה:** {info['desc']}")
+            st.info(f"**המלצה לטיפול:** {info['tip']}")
