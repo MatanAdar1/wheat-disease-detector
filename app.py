@@ -16,9 +16,10 @@ st.set_page_config(page_title="מערכת לזיהוי מחלות צמחים �
 if "page" not in st.session_state:
     st.session_state.page = "home"
 
-# עיצוב ממוקד ומניעת קריסת טקסטים אנכית (RTL)
+# 🎨 עיצוב פרימיום מתקדם ומודרני (RTL מלא)
 st.markdown("""
     <style>
+    /* הגדרות כיווניות ויישור טקסט גלובליות */
     .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, label, [data-testid="stWidgetLabel"] {
         text-align: right !important;
         direction: rtl !important;
@@ -35,21 +36,49 @@ st.markdown("""
         direction: rtl !important;
         text-align: right !important;
     }
+    
+    /* עיצוב כרטיסיות מידע פנימיות */
     .custom-card {
-        background-color: #f8f9fa;
-        padding: 20px;
-        border-radius: 10px;
-        border-right: 5px solid #4caf50;
-        margin-bottom: 15px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        background-color: #ffffff;
+        padding: 24px;
+        border-radius: 12px;
+        border-right: 6px solid #2e7d32;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
     }
+    
+    /* עיצוב משודרג לכרטיסיות דף הבית כולל אפקט ריחוף פרימיום */
     .home-box {
         background-color: #ffffff;
-        padding: 30px;
-        border-radius: 15px;
-        border: 1px solid #e0e0e0;
+        padding: 40px 30px;
+        border-radius: 16px;
+        border: 1px solid #eaeaea;
         text-align: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        height: 100%;
+    }
+    .home-box:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 30px rgba(46, 125, 50, 0.12);
+        border-color: #2e7d32;
+    }
+    
+    /* כותרות דף הבית */
+    .main-title {
+        font-size: 3rem !important;
+        font-weight: 800 !important;
+        background: linear-gradient(45deg, #2e7d32, #1565c0);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: center !important;
+        margin-bottom: 10px !important;
+    }
+    .subtitle {
+        font-size: 1.25rem !important;
+        color: #666666 !important;
+        text-align: center !important;
+        margin-bottom: 40px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -130,7 +159,7 @@ def load_experiment_data():
 @st.cache_resource
 def load_wheat_model():
     if not os.path.exists(MODEL_PATH):
-        with st.spinner('טוען מודל זיהוי...'):
+        with st.spinner('טוען מודל בינה מלאכותית...'):
             gdown.download(f'https://drive.google.com/uc?id={FILE_ID}', MODEL_PATH, quiet=False)
     try:
         checkpoint = torch.load(MODEL_PATH, map_location=torch.device('cpu'), weights_only=False)
@@ -152,57 +181,64 @@ transform = transforms.Compose([
 ])
 
 # ==========================================
-# 🏠 דף הבית של האפליקציה
+# 🏠 דף הבית המעוצב של האפליקציה
 # ==========================================
 if st.session_state.page == "home":
     st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align: center; color: #2e7d32;'>🌾 מערכת לזיהוי מחלות צמחים</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; font-size: 1.2rem; color: #555;'>מבצעים: נבו הלר ומתן אדר | מנחה: אסי ברק</p>", unsafe_allow_html=True)
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<div class='main-title'>מערכת מתקדמת לזיהוי מחלות צמחים</div>", unsafe_allow_html=True)
+    st.markdown("<div class='subtitle'>מבצעים: נבו הלר ומתן אדר | מנחה: אסי ברק</div>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2, gap="large")
     
     with col1:
         st.markdown("""
         <div class="home-box">
-            <h3 style='color: #1565c0;'>📸 אבחון חזותי מהיר</h3>
-            <p>צילום או העלאת עלה לזיהוי מיידי של סוג המחלה, קבלת פירוט מורחב והמלצות טיפול מעשיות (חד-פעמי ללא טבלה).</p>
+            <span style='font-size: 3.5rem;'>📸</span>
+            <h3 style='color: #1565c0; margin-top:15px; font-size: 1.6rem;'>אבחון חזותי מהיר</h3>
+            <p style='color: #666; font-size: 1.05rem; line-height: 1.6;'>בדיקה מיידית וחד-פעמית של עלה נגוע מהשטח. מעלים תמונה ומקבלים מיד פירוט מעבדתי מלא והנחיות טיפול יישומיות (ללא קישור לטבלת הניסוי).</p>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("פתח אבחון מהיר 🚀", use_container_width=True, key="btn_single"):
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("הפעל אבחון מהיר 🚀", use_container_width=True, key="btn_single", type="primary"):
             st.session_state.page = "single_diagnosis"
             st.rerun()
             
     with col2:
         st.markdown("""
         <div class="home-box">
-            <h3 style='color: #2e7d32;'>📊 ניהול ומעקב ניסוי חיטה</h3>
-            <p>צפייה בטבלת הנתונים המלאה של הניסוי, ניווט ודפדוף בין צמחים, והוספת צילומים קבועים למאגר ההיסטורי של כל צמח.</p>
+            <span style='font-size: 3.5rem;'>📊</span>
+            <h3 style='color: #2e7d32; margin-top:15px; font-size: 1.6rem;'>ניהול ומעקב ניסוי חיטה</h3>
+            <p style='color: #666; font-size: 1.05rem; line-height: 1.6;'>ניהול מלא של חלקה ומעקב אחר צמחי הניסוי המסודרים בטבלה. כולל דפדוף בין מזהים, סנכרון תיעודים קבוע בין מחשבים והיסטוריית אבחונים חזותית.</p>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("פתח מערכת ניסוי ומאגר 🔬", use_container_width=True, key="btn_exp"):
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("פתח מערכת ניסוי ומאגר 🔬", use_container_width=True, key="btn_exp", type="primary"):
             st.session_state.page = "experiment_management"
             st.rerun()
 
 # ==========================================
-# 📸 עמוד 1: אבחון חד-פעמי (מהיר)
+# 📸 עמוד 1: אבחון חד-פעמי (ללא רמת ביטחון)
 # ==========================================
 elif st.session_state.page == "single_diagnosis":
     if st.button("🔙 חזרה לדף הבית", key="back_home_1"):
         st.session_state.page = "home"
         st.rerun()
         
-    st.header("📸 אבחון חזותי מהיר והמלצות טיפול")
+    st.markdown("<h2 style='color: #1565c0;'>📸 אבחון חזותי מהיר והמלצות טיפול</h2>", unsafe_allow_html=True)
     st.write("ממשק צילום עצמאי לבדיקת פגעים ומחלות בעלים בזמן אמת")
     st.divider()
     
-    c1, c2 = st.columns([1, 1])
+    c1, c2 = st.columns([1, 1], gap="large")
     with c1:
-        input_method = st.radio("בחר דרך להזנת תמונה:", ("צילום ישיר במצלמה 📸", "העלאת קובץ מהגלריה 📁"), key="single_meth")
-        if "מצלמה" in input_method:
-            img_file = st.camera_input("צלם את העלה לבדיקה", key="single_cam")
-        else:
-            img_file = st.file_uploader("בחר קובץ תמונה מהמחשב", type=['jpg', 'png', 'jpeg'], key="single_upload")
+        with st.container(border=True):
+            st.markdown("### 📥 שלב 1: הזנת הממצא מהשדה")
+            input_method = st.radio("בחר דרך להזנת תמונה:", ("צילום ישיר במצלמה 📸", "העלאת קובץ מהגלריה 📁"), key="single_meth")
+            st.markdown("<br>", unsafe_allow_html=True)
+            if "מצלמה" in input_method:
+                img_file = st.camera_input("צלם את העלה לבדיקה", key="single_cam")
+            else:
+                img_file = st.file_uploader("בחר קובץ תמונה מהמחשב", type=['jpg', 'png', 'jpeg'], key="single_upload")
             
     with c2:
         if img_file:
@@ -221,12 +257,19 @@ elif st.session_state.page == "single_diagnosis":
                     class_name = labels[pred.item()]
                     info = DISEASE_INFO.get(class_name, {"heb": class_name, "desc": "אין פירוט זמין", "tip": "אין המלצות זמינות"})
                     
-                    st.markdown(f"### 🎯 אבחון מערכת: **{info['heb']}** (ביטחון: {conf.item()*100:.1f}%)")
+                    # הוסר נתון רמת הביטחון בסוגריים לבקשתכם
+                    st.markdown(f"### 🎯 אבחון מערכת: <span style='color: #1565c0;'><b>{info['heb']}</b></span>", unsafe_allow_html=True)
                     
-                    with st.container(border=True):
-                        st.markdown(f"🔬 **פירוט המחלה והסימפטומים:**\n{info['desc']}")
-                        st.divider()
-                        st.markdown(f"💡 **המלצות לטיפול מעשי בשטח:**\n{info['tip']}")
+                    # הצגת התוצאה וההמלצות בכרטיסייה מעוצבת ונקייה
+                    st.markdown(f"""
+                    <div class="custom-card" style="border-right-color: #1565c0; background-color: #f1f8ff;">
+                        <h4 style="color: #1565c0; margin-top:0;">🔬 פירוט המחלה והסימפטומים:</h4>
+                        <p style="font-size: 1.05rem; line-height: 1.6;">{info['desc']}</p>
+                        <hr style="border: 0; border-top: 1px solid #d0e2ff; margin: 20px 0;">
+                        <h4 style="color: #2e7d32; margin-top:0;">💡 המלצות לטיפול מעשי בשטח:</h4>
+                        <p style="font-size: 1.05rem; line-height: 1.6;">{info['tip']}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
             else:
                 st.error("מודל הזיהוי אינו טעון בשרת.")
 
@@ -242,7 +285,7 @@ elif st.session_state.page == "experiment_management":
         st.error("❌ קובץ הנתונים plants_experiment_73.csv חסר בשרת!")
         st.stop()
         
-    st.header("📊 מערכת ניהול, ניטור וסנכרון ניסוי החיטה")
+    st.markdown("<h2 style='color: #2e7d32;'>📊 מערכת ניהול, ניטור וסנכרון ניסוי החיטה</h2>", unsafe_allow_html=True)
     st.divider()
     
     plants_df['select_label'] = plants_df.apply(lambda r: f"ID: {r['id']} | שם: {r['name']}", axis=1)
@@ -284,11 +327,11 @@ elif st.session_state.page == "experiment_management":
     stress = plant_row['stressDegree']
     
     if treatment == 'Drought' and stress > 0.15:
-        status_html = f"<div class='custom-card' style='border-right-color: #f44336;'>⚠️ <b>סטטוס פנוטיפי:</b> עקת יובש משמעותית (מדד: {stress:.3f}). הצמח מציג סימני מחסור חריפים במים.</div>"
+        status_html = f"<div class='custom-card' style='border-right-color: #f44336; background-color: #fdf2f2;'>⚠️ <b>סטטוס פנוטיפי:</b> עקת יובש משמעותית (מדד: {stress:.3f}). הצמח מציג סימני מחסור חריפים במים.</div>"
     elif treatment == 'Drought':
-        status_html = f"<div class='custom-card' style='border-right-color: #ff9800;'>🔸 <b>סטטוס פנוטיפי:</b> עקת יובש מתונה (מדד: {stress:.3f}). הצמח נמצא תחת מגבלת השקיה מבוקרת.</div>"
+        status_html = f"<div class='custom-card' style='border-right-color: #ff9800; background-color: #fffaf2;'>🔸 <b>סטטוס פנוטיפי:</b> עקת יובש מתונה (מדד: {stress:.3f}). הצמח נמצא תחת מגבלת השקיה מבוקרת.</div>"
     else:
-        status_html = f"<div class='custom-card'>✅ <b>סטטוס פנוטיפי:</b> תקין ויציב. קבוצת ביקורת (Control), משטר השקיה מלא.</div>"
+        status_html = f"<div class='custom-card' style='background-color: #f2fbf2;'>✅ <b>סטטוס פנוטיפי:</b> תקין ויציב. קבוצת ביקורת (Control), משטר השקיה מלא.</div>"
     st.markdown(status_html, unsafe_allow_html=True)
     
     if len(plant_history) > 0:
@@ -319,7 +362,7 @@ elif st.session_state.page == "experiment_management":
     st.divider()
     st.subheader("📸 בדיקה חזותית והוספה למאגר התיעודים")
     with st.container(border=True):
-        c1, c2 = st.columns(2)
+        c1, c2 = st.columns(2, gap="medium")
         with c1:
             input_method = st.radio("בחר דרך להזנת תמונה:", ("צילום ישיר במצלמה 📸", "העלאת קובץ מהגלריה 📁"), key="exp_meth")
             if "מצלמה" in input_method:
@@ -345,7 +388,7 @@ elif st.session_state.page == "experiment_management":
                     auto_diagnosis = DISEASE_INFO.get(class_name, {"heb": class_name})["heb"]
             st.markdown(f"**🔍 תוצאת ניתוח חזותי:** {auto_diagnosis}")
             
-            if st.button(f"💾 שמור צילום ותיאור מצב למאגר המשותף", use_container_width=True):
+            if st.button(f"💾 שמור צילום ותיאור מצב למאגר המשותף", use_container_width=True, type="primary"):
                 save_record_to_disk(plant_id, image, auto_diagnosis, user_notes if user_notes else "לא הוכנס פירוט חופשי", class_name)
                 st.success("הנתונים נשמרו בהצלחה על השרת וזמינים כעת לכל המחשבים במערכת!")
                 st.rerun()
@@ -355,7 +398,7 @@ elif st.session_state.page == "experiment_management":
     if len(plant_history) > 0:
         for record in reversed(plant_history):
             with st.container(border=True):
-                hc1, hc2 = st.columns([1, 3])
+                hc1, hc2 = st.columns([1, 3], gap="medium")
                 with hc1: st.image(record["image_path"], use_container_width=True)
                 with hc2:
                     st.markdown(f"### 📅 תאריך ושעה: `{record['timestamp']}`")
@@ -364,5 +407,5 @@ elif st.session_state.page == "experiment_management":
                     c_ref = record.get("class_name", "")
                     if c_ref in DISEASE_INFO and c_ref != "HealthyLeaf":
                         st.info(f"💡 **הנחיית טיפול ארכיון:** {DISEASE_INFO[c_ref]['tip']}")
-    else:
-        st.info("אין עדיין צילומים מתועדים במאגר עבור צמח זה.")
+else:
+    st.info("אין עדיין צילומים מתועדים במאגר עבור צמח זה.")
