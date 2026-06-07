@@ -16,56 +16,90 @@ st.set_page_config(page_title="מערכת לזיהוי מחלות צמחים �
 if "page" not in st.session_state:
     st.session_state.page = "home"
 
-# 🎨 עיצוב פרימיום מתקדם ומודרני (RTL מלא)
-st.markdown("""
+# ==========================================
+# 🎨 סימולטור רקעים אינטראקטיבי (לבחירתכם)
+# ==========================================
+st.sidebar.markdown("""
+    <div style='text-align: right; direction: rtl;'>
+        <h3 style='color: #2e7d32; margin-bottom: 0;'>🎨 בורר רקעים זמני</h3>
+        <p style='font-size: 0.85rem; color: #666;'>ביחרו רקע כדי לראות איך האפליקציה נראית איתו בזמן אמת. לאחר שתחליטו, נוכל לקבע אותו.</p>
+    </div>
+""", unsafe_allow_html=True)
+
+bg_option = st.sidebar.radio(
+    "בחר רקע לתצוגה:",
+    ("אופציה 1: אגרו-טק הייטק 🟢", 
+     "אופציה 2: בינה מלאכותית ודאטה 🔵", 
+     "אופציה 3: שדות חיטה אורגניים 🌾")
+)
+
+# הגדרת ה-Gradient (מעבר הצבעים) לפי הבחירה שלכם
+if "אופציה 1" in bg_option:
+    # ירוק-מנטה מעבדתי בהיר מאוד שמתמזג ללבן פנינה
+    selected_bg = "linear-gradient(135deg, #f4faf6 0%, #fafdfb 40%, #ffffff 100%)"
+elif "אופציה 2" in bg_option:
+    # כחול-פלדה הייטק, אפור דאטה ונגיעות סלדון עמומות
+    selected_bg = "linear-gradient(135deg, #f0f4f8 0%, #f7f9fb 50%, #eef7f6 100%)"
+else:
+    # גווני חול, שמנת וצהוב-קש מעודן (חיבור לאדמה)
+    selected_bg = "linear-gradient(135deg, #fdfcf9 0%, #f9f5ed 60%, #ffffff 100%)"
+
+
+# הטמעת ה-CSS הגלובלי המעודכן עם הרקע הנבחר
+st.markdown(f"""
     <style>
-    /* הגדרות כיווניות ויישור טקסט גלובליות */
-    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, label, [data-testid="stWidgetLabel"] {
-        text-align: right !important;
-        direction: rtl !important;
-    }
-    .stButton>button, .stSelectbox, .stTextArea {
-        direction: rtl !important;
-        text-align: right !important;
-    }
-    [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {
-        text-align: right !important;
-        direction: rtl !important;
-    }
-    [data-testid="stDataFrame"] {
-        direction: rtl !important;
-        text-align: right !important;
-    }
+    /* הזרקת הרקע הדינמי לכל עמודי האפליקציה */
+    [data-testid="stAppViewContainer"] {{
+        background: {selected_bg} !important;
+    }}
     
-    /* עיצוב כרטיסיות מידע פנימיות */
-    .custom-card {
-        background-color: #ffffff;
+    /* הגדרות כיווניות ויישור טקסט גלובליות (RTL) */
+    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, label, [data-testid="stWidgetLabel"] {{
+        text-align: right !important;
+        direction: rtl !important;
+    }}
+    .stButton>button, .stSelectbox, .stTextArea {{
+        direction: rtl !important;
+        text-align: right !important;
+    }}
+    [data-testid="stMetricValue"], [data-testid="stMetricLabel"] {{
+        text-align: right !important;
+        direction: rtl !important;
+    }}
+    [data-testid="stDataFrame"] {{
+        direction: rtl !important;
+        text-align: right !important;
+    }}
+    
+    /* עיצוב כרטיסיות מידע פנימיות - רקע לבן סולידי כדי שיצוף מעל הרקע הכללי */
+    .custom-card {{
+        background-color: #ffffff !important;
         padding: 24px;
         border-radius: 12px;
         border-right: 6px solid #2e7d32;
         margin-bottom: 20px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    }
+        box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+    }}
     
-    /* עיצוב משודרג לכרטיסיות דף הבית כולל אפקט ריחוף פרימיום */
-    .home-box {
-        background-color: #ffffff;
+    /* כרטיסיות דף הבית עם אפקט ריחוף מרשים (Hover) */
+    .home-box {{
+        background-color: #ffffff !important;
         padding: 40px 30px;
         border-radius: 16px;
         border: 1px solid #eaeaea;
         text-align: center;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.03);
         transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
         height: 100%;
-    }
-    .home-box:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 12px 30px rgba(46, 125, 50, 0.12);
+    }}
+    .home-box:hover {{
+        transform: translateY(-8px);
+        box-shadow: 0 16px 35px rgba(46, 125, 50, 0.12);
         border-color: #2e7d32;
-    }
+    }}
     
-    /* כותרות דף הבית */
-    .main-title {
+    /* כותרות פרינקס */
+    .main-title {{
         font-size: 3rem !important;
         font-weight: 800 !important;
         background: linear-gradient(45deg, #2e7d32, #1565c0);
@@ -73,13 +107,13 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
         text-align: center !important;
         margin-bottom: 10px !important;
-    }
-    .subtitle {
+    }}
+    .subtitle {{
         font-size: 1.25rem !important;
-        color: #666666 !important;
+        color: #555555 !important;
         text-align: center !important;
         margin-bottom: 40px !important;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -181,7 +215,7 @@ transform = transforms.Compose([
 ])
 
 # ==========================================
-# 🏠 דף הבית המעוצב של האפליקציה
+# 🏠 דף הבית
 # ==========================================
 if st.session_state.page == "home":
     st.markdown("<br><br>", unsafe_allow_html=True)
@@ -196,7 +230,7 @@ if st.session_state.page == "home":
         <div class="home-box">
             <span style='font-size: 3.5rem;'>📸</span>
             <h3 style='color: #1565c0; margin-top:15px; font-size: 1.6rem;'>אבחון חזותי מהיר</h3>
-            <p style='color: #666; font-size: 1.05rem; line-height: 1.6;'>בדיקה מיידית וחד-פעמית של עלה נגוע מהשטח. מעלים תמונה ומקבלים מיד פירוט מעבדתי מלא והנחיות טיפול יישומיות (ללא קישור לטבלת הניסוי).</p>
+            <p style='color: #555; font-size: 1.05rem; line-height: 1.6;'>בדיקה מיידית וחד-פעמית של עלה נגוע מהשטח. מעלים תמונה ומקבלים מיד פירוט מעבדתי מלא והנחיות טיפול יישומיות (ללא קישור לטבלת הניסוי).</p>
         </div>
         """, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
@@ -209,7 +243,7 @@ if st.session_state.page == "home":
         <div class="home-box">
             <span style='font-size: 3.5rem;'>📊</span>
             <h3 style='color: #2e7d32; margin-top:15px; font-size: 1.6rem;'>ניהול ומעקב ניסוי חיטה</h3>
-            <p style='color: #666; font-size: 1.05rem; line-height: 1.6;'>ניהול מלא של חלקה ומעקב אחר צמחי הניסוי המסודרים בטבלה. כולל דפדוף בין מזהים, סנכרון תיעודים קבוע בין מחשבים והיסטוריית אבחונים חזותית.</p>
+            <p style='color: #555; font-size: 1.05rem; line-height: 1.6;'>ניהול מלא של חלקה ומעקב אחר צמחי הניסוי המסודרים בטבלה. כולל דפדוף בין מזהים, סנכרון תיעודים קבוע בין מחשבים והיסטוריית אבחונים חזותית.</p>
         </div>
         """, unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
@@ -257,10 +291,8 @@ elif st.session_state.page == "single_diagnosis":
                     class_name = labels[pred.item()]
                     info = DISEASE_INFO.get(class_name, {"heb": class_name, "desc": "אין פירוט זמין", "tip": "אין המלצות זמינות"})
                     
-                    # הוסר נתון רמת הביטחון בסוגריים לבקשתכם
                     st.markdown(f"### 🎯 אבחון מערכת: <span style='color: #1565c0;'><b>{info['heb']}</b></span>", unsafe_allow_html=True)
                     
-                    # הצגת התוצאה וההמלצות בכרטיסייה מעוצבת ונקייה
                     st.markdown(f"""
                     <div class="custom-card" style="border-right-color: #1565c0; background-color: #f1f8ff;">
                         <h4 style="color: #1565c0; margin-top:0;">🔬 פירוט המחלה והסימפטומים:</h4>
@@ -347,7 +379,7 @@ elif st.session_state.page == "experiment_management":
         if c_name in DISEASE_INFO and c_name != "HealthyLeaf":
             with st.expander(f"🔬 לחץ לצפייה בפירוט מורחב והמלצות עבור {DISEASE_INFO[c_name]['heb']}", expanded=True):
                 st.markdown(f"**תיאור המחלה:** {DISEASE_INFO[c_name]['desc']}")
-                st.markdown(f"**🌱 המלצות לטיפול מעשי בשטח:** {DISEASE_INFO[c_name]['tip']}")
+                st.markdown(f"**🌱 המלצות לטיפול מעשי בשטח:** {DISEASE_INFO[c_ref]['tip']}")
                 
     st.divider()
     st.subheader("📊 נתוני הצמח המלאים מתוך הניסוי (תצורה אופקית)")
@@ -407,5 +439,5 @@ elif st.session_state.page == "experiment_management":
                     c_ref = record.get("class_name", "")
                     if c_ref in DISEASE_INFO and c_ref != "HealthyLeaf":
                         st.info(f"💡 **הנחיית טיפול ארכיון:** {DISEASE_INFO[c_ref]['tip']}")
-else:
-    st.info("אין עדיין צילומים מתועדים במאגר עבור צמח זה.")
+    else:
+        st.info("אין עדיין צילומים מתועדים במאגר עבור צמח זה.")
