@@ -116,7 +116,7 @@ plant_name = str(plant_row['name'])
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("מזהה ייחודי (ID)", str(plant_id))
-col2.metric("שם הצמח", plant_name))
+col2.metric("שם הצמח", plant_name)
 col3.metric("סוג טיפול", str(plant_row['#Treatment']))
 col4.metric("מדד עקה", f"{plant_row['stressDegree']:.3f}")
 
