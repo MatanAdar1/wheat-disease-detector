@@ -63,7 +63,7 @@ DISEASE_INFO = {
 def load_wheat_model():
     if not os.path.exists(MODEL_PATH):
         with st.spinner('טוען מודל...'):
-            gdown.download(f'https://drive.google.com/uc?id={FILE_ID}', MODEL_PATH, quiet=False)
+            gdown.download(f'[https://drive.google.com/uc?id=](https://drive.google.com/uc?id=){FILE_ID}', MODEL_PATH, quiet=False)
     
     try:
         checkpoint = torch.load(MODEL_PATH, map_location=torch.device('cpu'), weights_only=False)
@@ -117,4 +117,3 @@ if img_file and model:
     with st.expander("מידע נוסף והמלצות לטיפול"):
         st.write(f"**תיאור המחלה:** {info['desc']}")
         st.info(f"**המלצה לניסוי:** {info['tip']}")
-```[cite: 2]
