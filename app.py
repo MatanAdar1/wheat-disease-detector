@@ -10,20 +10,21 @@ st.set_page_config(page_title="זיהוי מחלות חיטה 🌾", page_icon="
 
 st.markdown("""
     <style>
-    .main {
-        direction: rtl;
-        text-align: right;
+    html, body, [data-testid="stAppViewContainer"], .stApp {
+        direction: rtl !important;
+        text-align: right !important;
+    }
+    h1, h2, h3, h4, p, label, .stMarkdown, [data-testid="stWidgetLabel"] {
+        direction: rtl !important;
+        text-align: right !important;
     }
     div[role="radiogroup"] {
-        direction: rtl;
-        text-align: right;
+        direction: rtl !important;
+        text-align: right !important;
     }
-    div.stMarkdown {
-        text-align: right;
-    }
-    .stAlert {
-        direction: rtl;
-        text-align: right;
+    [data-testid="stFileUploader"] {
+        direction: rtl !important;
+        text-align: right !important;
     }
     </style>
     """, unsafe_allow_html=True)
