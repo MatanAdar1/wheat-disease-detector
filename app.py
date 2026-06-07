@@ -31,6 +31,7 @@ st.markdown("""
 
 FILE_ID = '161ysydHCyvLOoVWkwWqJT5RpcMn_0rVu'
 MODEL_PATH = 'best_resnet18_wheat.pt'
+CONFIDENCE_THRESHOLD = 0.25
 
 DISEASE_INFO = {
     "BlackPoint": {
@@ -108,7 +109,7 @@ if img_file and model:
         prob = torch.nn.functional.softmax(output[0], dim=0)
         conf, pred = torch.max(prob, 0)
 
-    if conf.item() < 0.40:
+    if conf.item() < CONFIDENCE_THRESHOLD:
         st.markdown("<br>", unsafe_allow_html=True)
         st.warning("לא זוהה עלה בתמונה, נסה לצלם שוב")
     else:
